@@ -9,18 +9,7 @@ const ROBLOX_HEADERS = {
   "Referer": "https://www.roproxy.com/",
 };
 
-export async function GET() {
-  try {
-    const res = await fetch(
-      `https://games.roblox.com/v1/games/list?` +
-        new URLSearchParams({
-          sortToken: "",
-          gameFilter: "default",
-          maxRows: "12",
-          startRows: "0",
-        }),
-      { headers: ROBLOX_HEADERS }
-    );
+import { getGames } from "@/lib/roblox";
 
     if (!res.ok) throw new Error(`Trending fetch failed: ${res.status}`);
     const data = await res.json();
