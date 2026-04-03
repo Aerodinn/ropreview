@@ -1,5 +1,6 @@
 "use client";
-
+import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { RobloxGame, fetchTrending, searchGames, syncGameFromUrl } from "@/lib/roblox";
 import { readFileAsDataURL, checkAspectRatio } from "@/lib/utils";
 import { HomeFeedPreview } from "./HomeFeedPreview";
