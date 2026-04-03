@@ -1,5 +1,6 @@
 "use client";
-import { RobloxGame, UserGame } from "@/lib/roblox";
+import { RobloxGame } from "@/lib/roblox";
+import type { UserGame } from "./PreviewTool";
 
 interface Props {
   userGame: UserGame;
