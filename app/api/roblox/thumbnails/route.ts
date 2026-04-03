@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "edge";
-
 function extractUniverseIdFromUrl(input: string): string | null {
   // Handle https://www.roblox.com/games/12345678/game-name
   const urlMatch = input.match(/roblox\.com\/games\/(\d+)/);
