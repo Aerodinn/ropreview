@@ -30,11 +30,12 @@ export function PreviewTool() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    setLoading(true);
-    fetchTrending()
-      .then(setCompetitors)
-      .finally(() => setLoading(false));
-  }, []);
+  setLoading(true);
+  fetch("/api/roblox/trending")
+    .then(r => r.json())
+    .then(d => setCompetitors(d.games || []))
+    .finally(() => setLoading(false));
+}, []);
 
   const handleThumbUpload = useCallback(async (file: File) => {
     const warning = await checkAspectRatio(file);
