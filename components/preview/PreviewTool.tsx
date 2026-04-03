@@ -1,7 +1,6 @@
 "use client";
 
 import { RobloxGame, fetchTrending, searchGames, syncGameFromUrl } from "@/lib/roblox";
-import { fetchTrending, searchGames, syncGameFromUrl } from "@/lib/roblox";
 import { readFileAsDataURL, checkAspectRatio } from "@/lib/utils";
 import { HomeFeedPreview } from "./HomeFeedPreview";
 import { SearchPreview } from "./SearchPreview";
