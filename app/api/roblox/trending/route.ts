@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "edge";
-
 const SORT_TOKENS = [
   "default", // Popular
 ];
