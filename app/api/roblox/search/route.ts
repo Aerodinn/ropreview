@@ -14,17 +14,7 @@ export async function GET(req: NextRequest) {
   const keyword = searchParams.get("q") || "";
   const limit = searchParams.get("limit") || "6";
 
-  try {
-    const searchRes = await fetch(
-      `https://games.roblox.com/v1/games/list?` +
-        new URLSearchParams({
-          keyword,
-          maxRows: limit,
-          startRows: "0",
-          sortToken: "",
-        }),
-      { headers: ROBLOX_HEADERS }
-    );
+ import { getGames } from "@/lib/roblox";
 
     if (!searchRes.ok) throw new Error(`Roblox search failed: ${searchRes.status}`);
     const searchData = await searchRes.json();
