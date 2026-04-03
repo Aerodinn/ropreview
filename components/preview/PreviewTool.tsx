@@ -2,12 +2,21 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { RobloxGame, PreviewSurface, UserGame } from "@/lib/types";
+import { RobloxGame } from "@/lib/roblox";
+import { fetchTrending, searchGames, syncGameFromUrl } from "@/lib/roblox";
 import { readFileAsDataURL, checkAspectRatio } from "@/lib/utils";
 import { HomeFeedPreview } from "./HomeFeedPreview";
 import { SearchPreview } from "./SearchPreview";
 import { MobilePreview } from "./MobilePreview";
 import { UploadPanel } from "./UploadPanel";
+
+export type PreviewSurface = "home" | "search" | "mobile";
+
+export interface UserGame {
+  name: string;
+  thumbnailUrl: string | null;
+  iconUrl: string | null;
+}
 
 export function PreviewTool() {
   const [userGame, setUserGame] = useState<UserGame>({
@@ -18,41 +27,16 @@ export function PreviewTool() {
   const [competitors, setCompetitors] = useState<RobloxGame[]>([]);
   const [surface, setSurface] = useState<PreviewSurface>("home");
   const [squint, setSquint] = useState(false);
-  const [loadingCompetitors, setLoadingCompetitors] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [aspectWarning, setAspectWarning] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Load trending games on mount for home feed
   useEffect(() => {
-    loadTrending();
+    setLoading(true);
+    fetchTrending()
+      .then(setCompetitors)
+      .finally(() => setLoading(false));
   }, []);
-
-  async function loadTrending() {
-    setLoadingCompetitors(true);
-    try {
-      const res = await fetch("/api/roblox/trending");
-      const data = await res.json();
-      setCompetitors(data.games || []);
-    } catch {
-      // silently fail - UI handles empty state
-    } finally {
-      setLoadingCompetitors(false);
-    }
-  }
-
-  async function searchCompetitors(query: string) {
-    if (!query.trim()) return;
-    setLoadingCompetitors(true);
-    try {
-      const res = await fetch(`/api/roblox/search?q=${encodeURIComponent(query)}&limit=8`);
-      const data = await res.json();
-      setCompetitors(data.games || []);
-    } catch {
-      // silently fail
-    } finally {
-      setLoadingCompetitors(false);
-    }
-  }
 
   const handleThumbUpload = useCallback(async (file: File) => {
     const warning = await checkAspectRatio(file);
@@ -67,21 +51,24 @@ export function PreviewTool() {
   }, []);
 
   const handleGameUrlSync = useCallback(async (url: string) => {
-    try {
-      const res = await fetch(`/api/roblox/thumbnails?url=${encodeURIComponent(url)}`);
-      const data = await res.json();
-      if (data.thumbnailUrl || data.iconUrl) {
-        setUserGame((prev) => ({
-          ...prev,
-          name: prev.name || data.name,
-          thumbnailUrl: data.thumbnailUrl || prev.thumbnailUrl,
-          iconUrl: data.iconUrl || prev.iconUrl,
-        }));
-      }
-    } catch {
-      // silently fail
+    const result = await syncGameFromUrl(url);
+    if (result) {
+      setUserGame((prev) => ({
+        ...prev,
+        name: prev.name || result.name,
+        thumbnailUrl: result.thumbnailUrl || prev.thumbnailUrl,
+        iconUrl: result.iconUrl || prev.iconUrl,
+      }));
     }
   }, []);
+
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim()) return;
+    setLoading(true);
+    searchGames(searchQuery)
+      .then(setCompetitors)
+      .finally(() => setLoading(false));
+  }, [searchQuery]);
 
   const surfaces: { id: PreviewSurface; label: string }[] = [
     { id: "home", label: "Home feed" },
@@ -91,7 +78,6 @@ export function PreviewTool() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0f0f1a]">
-      {/* Nav */}
       <nav className="flex items-center justify-between px-5 py-3 border-b border-[#1a1a2e] shrink-0">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-[#00A2FF] font-extrabold text-lg tracking-tight">ropreview</span>
@@ -101,21 +87,15 @@ export function PreviewTool() {
           <button
             onClick={() => setSquint(!squint)}
             className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
-              squint
-                ? "bg-[#00A2FF] border-[#00A2FF] text-white"
-                : "border-[#2a2a3e] text-white/50 hover:text-white"
+              squint ? "bg-[#00A2FF] border-[#00A2FF] text-white" : "border-[#2a2a3e] text-white/50 hover:text-white"
             }`}
           >
             👁 Squint test
           </button>
-          <span className="text-xs text-white/20 hidden md:block">
-            Free · No login required
-          </span>
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-hidden">
-        {/* Left panel — upload + controls */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         <div className="lg:w-80 xl:w-96 shrink-0 border-b lg:border-b-0 lg:border-r border-[#1a1a2e] overflow-y-auto">
           <UploadPanel
             userGame={userGame}
@@ -126,46 +106,35 @@ export function PreviewTool() {
             aspectWarning={aspectWarning}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            onSearch={() => searchCompetitors(searchQuery)}
-            loadingCompetitors={loadingCompetitors}
+            onSearch={handleSearch}
+            loadingCompetitors={loading}
           />
         </div>
 
-        {/* Right panel — preview */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Surface tabs */}
           <div className="flex items-center gap-1 px-5 py-3 border-b border-[#1a1a2e] shrink-0">
             {surfaces.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setSurface(s.id)}
                 className={`text-xs font-bold px-4 py-1.5 rounded-full transition-colors ${
-                  surface === s.id
-                    ? "bg-[#00A2FF] text-white"
-                    : "text-white/40 hover:text-white"
+                  surface === s.id ? "bg-[#00A2FF] text-white" : "text-white/40 hover:text-white"
                 }`}
               >
                 {s.label}
               </button>
             ))}
-            {loadingCompetitors && (
+            {loading && (
               <span className="ml-auto text-[11px] text-white/30 animate-pulse">
                 Loading live data…
               </span>
             )}
           </div>
 
-          {/* Preview surface */}
           <div className={`flex-1 overflow-y-auto p-4 md:p-6 ${squint ? "squint-active" : ""}`}>
-            {surface === "home" && (
-              <HomeFeedPreview userGame={userGame} competitors={competitors} />
-            )}
-            {surface === "search" && (
-              <SearchPreview userGame={userGame} competitors={competitors} />
-            )}
-            {surface === "mobile" && (
-              <MobilePreview userGame={userGame} competitors={competitors} />
-            )}
+            {surface === "home" && <HomeFeedPreview userGame={userGame} competitors={competitors} />}
+            {surface === "search" && <SearchPreview userGame={userGame} competitors={competitors} />}
+            {surface === "mobile" && <MobilePreview userGame={userGame} competitors={competitors} />}
           </div>
         </div>
       </div>

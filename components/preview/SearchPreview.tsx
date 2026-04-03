@@ -1,5 +1,5 @@
 "use client";
-import { RobloxGame, UserGame } from "@/lib/types";
+import { RobloxGame, UserGame } from "@/lib/roblox";
 import { formatPlayerCount } from "@/lib/utils";
 
 interface Props {
