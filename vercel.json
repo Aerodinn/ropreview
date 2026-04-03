@@ -1,6 +1,12 @@
 {
   "functions": {
-    "app/api/**/*.ts": {
+    "api/roblox/trending": {
+      "runtime": "nodejs20.x"
+    },
+    "api/roblox/search": {
+      "runtime": "nodejs20.x"
+    },
+    "api/roblox/thumbnails": {
       "runtime": "nodejs20.x"
     }
   }
