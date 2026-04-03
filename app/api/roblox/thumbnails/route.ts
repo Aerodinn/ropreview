@@ -26,12 +26,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid game URL or ID" }, { status: 400 });
   }
 
-  try {
-    // Get universe ID from place ID
-    const universeRes = await fetch(
-      `https://apis.roblox.com/universes/v1/places?placeIds=${placeId}`,
-      { headers: ROBLOX_HEADERS }
-    );
+import { getGames } from "@/lib/roblox";
 
     let universeId = placeId;
     if (universeRes.ok) {
