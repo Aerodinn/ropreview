@@ -1,47 +1,44 @@
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 
-const ROBLOX_HEADERS = {
-  "Accept": "application/json",
-  "Accept-Language": "en-US,en;q=0.9",
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Origin": "https://www.roproxy.com",
-  "Referer": "https://www.roproxy.com/",
-};
-
-import { getGames } from "@/lib/roblox";
+export async function GET() {
+  try {
+    const res = await fetch(
+      `https://games.roproxy.com/v1/games/list?` +
+        new URLSearchParams({
+          sortToken: "",
+          gameFilter: "default",
+          maxRows: "12",
+          startRows: "0",
+        })
+    );
 
     if (!res.ok) throw new Error(`Trending fetch failed: ${res.status}`);
     const data = await res.json();
     const games = data.games || [];
-
     if (games.length === 0) return NextResponse.json({ games: [] });
 
     const universeIds = games.map((g: { universeId: number }) => g.universeId).join(",");
 
     const [thumbRes, iconRes] = await Promise.all([
-      fetch(
-        `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?` +
-          new URLSearchParams({
-            universeIds,
-            countPerUniverse: "1",
-            defaults: "true",
-            size: "768x432",
-            format: "Png",
-            isCircular: "false",
-          }),
-        { headers: ROBLOX_HEADERS }
+      fetch(`https://thumbnails.roproxy.com/v1/games/multiget/thumbnails?` +
+        new URLSearchParams({
+          universeIds,
+          countPerUniverse: "1",
+          defaults: "true",
+          size: "768x432",
+          format: "Png",
+          isCircular: "false",
+        })
       ),
-      fetch(
-        `https://thumbnails.roblox.com/v1/games/icons?` +
-          new URLSearchParams({
-            universeIds,
-            returnPolicy: "PlaceHolder",
-            size: "150x150",
-            format: "Png",
-            isCircular: "false",
-          }),
-        { headers: ROBLOX_HEADERS }
+      fetch(`https://thumbnails.roproxy.com/v1/games/icons?` +
+        new URLSearchParams({
+          universeIds,
+          returnPolicy: "PlaceHolder",
+          size: "150x150",
+          format: "Png",
+          isCircular: "false",
+        })
       ),
     ]);
 

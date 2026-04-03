@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { RobloxGame, fetchTrending, searchGames, syncGameFromUrl } from "@/lib/roblox";
+import { RobloxGame } from "@/lib/roblox";
 import { readFileAsDataURL, checkAspectRatio } from "@/lib/utils";
 import { HomeFeedPreview } from "./HomeFeedPreview";
 import { SearchPreview } from "./SearchPreview";
@@ -30,12 +30,13 @@ export function PreviewTool() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-  setLoading(true);
-  fetch("/api/roblox/trending")
-    .then(r => r.json())
-    .then(d => setCompetitors(d.games || []))
-    .finally(() => setLoading(false));
-}, []);
+    setLoading(true);
+    fetch("/api/roblox/trending")
+      .then(r => r.json())
+      .then(d => setCompetitors(d.games || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleThumbUpload = useCallback(async (file: File) => {
     const warning = await checkAspectRatio(file);
@@ -50,22 +51,27 @@ export function PreviewTool() {
   }, []);
 
   const handleGameUrlSync = useCallback(async (url: string) => {
-    const result = await syncGameFromUrl(url);
-    if (result) {
-      setUserGame((prev) => ({
-        ...prev,
-        name: prev.name || result.name,
-        thumbnailUrl: result.thumbnailUrl || prev.thumbnailUrl,
-        iconUrl: result.iconUrl || prev.iconUrl,
-      }));
-    }
+    try {
+      const res = await fetch(`/api/roblox/thumbnails?url=${encodeURIComponent(url)}`);
+      const data = await res.json();
+      if (data.thumbnailUrl || data.iconUrl || data.name) {
+        setUserGame((prev) => ({
+          ...prev,
+          name: prev.name || data.name,
+          thumbnailUrl: data.thumbnailUrl || prev.thumbnailUrl,
+          iconUrl: data.iconUrl || prev.iconUrl,
+        }));
+      }
+    } catch {}
   }, []);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
     setLoading(true);
-    searchGames(searchQuery)
-      .then(setCompetitors)
+    fetch(`/api/roblox/search?q=${encodeURIComponent(searchQuery)}`)
+      .then(r => r.json())
+      .then(d => setCompetitors(d.games || []))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [searchQuery]);
 
